@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/Counter.tsx","./src/components/TelaLogin.tsx","./src/components/TelaRelatorio.tsx","./src/data/topicos.ts","./src/utils/relatorio.ts"],"version":"6.0.3"}
