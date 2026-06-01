@@ -127,7 +127,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
   };
 
   const handleEnviarWhatsAppWeb = () => {
-    const texto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs); // Lembre-se de adaptar sua função para aceitar a nova estrutura se necessário
+    const texto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs, setor); // Lembre-se de adaptar sua função para aceitar a nova estrutura se necessário
 
     const novoItem: HistoricoItem = {
       id: Date.now().toString(),
@@ -175,7 +175,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
   };
 
   const handlePDF = () => {
-    exportarPDF(tecnico.nome, filial, data, valores, obs);
+exportarPDF(tecnico.nome, filial, data, valores, obs, setor);
   };
 
   const handleLimpar = () => {
@@ -206,7 +206,8 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
     setValores((prev) => ({ ...prev, [topico]: 0 }));
   };
 
-  const previewTexto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs);
+  // ANTES: const previewTexto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs);
+const previewTexto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs, setor);
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 24px 60px" }}>
