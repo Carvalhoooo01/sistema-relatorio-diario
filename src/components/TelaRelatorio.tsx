@@ -65,36 +65,27 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
     }
   };
 
-  // Função auxiliar para salvar no Histórico Local
-  const salvarNoHistorico = (currentFilial: Filial, currentData: string, currentValores: ValoresTopicos, currentObs: string) => {
-    const novoItem: HistoricoItem = {
-      id: Date.now().toString(),
-      data: currentData,
-      filial: currentFilial,
-      valores: currentValores,
-      obs: currentObs
-    };
-
-    const jaExiste = historico.some(
-      (h) => h.data === currentData && h.filial === currentFilial && JSON.stringify(h.valores) === JSON.stringify(currentValores) && h.obs === currentObs
-    );
-    
-    if (!jaExiste) {
-      const historicoAtualizado = [novoItem, ...historico];
-      setHistorico(historicoAtualizado);
-      localStorage.setItem(localStorageKey, JSON.stringify(historicoAtualizado));
-    }
-  };
-
-  // Modelo Restaurado: Abre o WhatsApp Web direto em uma nova aba do navegador com o texto preenchido
+  // Modelo: Salva no histórico local e abre o WhatsApp Web
   const handleEnviarWhatsAppWeb = () => {
     const texto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs);
-    salvarNoHistorico(filial, data, valores, obs);
+
+    // Criar o item do histórico
+    const novoItem: HistoricoItem = {
+      id: Date.now().toString(),
+      data,
+      filial,
+      valores: { ...valores }, // Cria uma cópia limpa dos valores
+      obs
+    };
+
+    // Atualiza o estado e força a gravação imediata no localStorage
+    const historicoAtualizado = [novoItem, ...historico.filter(h => h.id !== novoItem.id)];
+    setHistorico(historicoAtualizado);
+    localStorage.setItem(localStorageKey, JSON.stringify(historicoAtualizado));
 
     const textoCodificado = encodeURIComponent(texto);
     const urlWhatsAppWeb = `https://web.whatsapp.com/send?text=${textoCodificado}`;
     
-    // Abre em uma nova aba pura (_blank) para chamar o WhatsApp Web diretamente
     window.open(urlWhatsAppWeb, "_blank");
   };
 
@@ -111,7 +102,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
   const restaurarRelatorio = (item: HistoricoItem) => {
     setFilial(item.filial);
     setData(item.data);
-    setValores(item.valores);
+    setValores({ ...item.valores });
     setObs(item.obs);
     
     const ativos = TOPICOS.filter((t) => item.valores[t] > 0);
@@ -165,7 +156,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
         <div>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#6b6b78", letterSpacing: "0.2em", textTransform: "uppercase", margin: "0 0 8px" }}>
-            Painel do Colaborador
+            Painel do Técnico
           </p>
           <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", margin: 0 }}>
             Olá, {tecnico.nome.split(" ")[0]}
@@ -322,7 +313,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {historico.length > 0 ? (
               historico.map((item) => {
-                const totalItem = TOPICOS.reduce((s, t) => s + item.valores[t], 0);
+                const totalItem = TOPICOS.reduce((s, t) => s + (item.valores[t] || 0), 0);
                 return (
                   <div key={item.id} style={{ background: "#1e1e22", border: "1px solid #2a2a30", borderRadius: 10, padding: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
