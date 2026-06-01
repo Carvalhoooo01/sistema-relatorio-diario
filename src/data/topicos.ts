@@ -38,8 +38,8 @@ export interface Tecnico {
   nome: string;
 }
 
-export type Filial = "Corbélia" | "Cascavel";
-export const FILIAIS: Filial[] = ["Corbélia", "Cascavel"];
+export type Filial = "Corbélia" | "Cafelandia";
+export const FILIAIS: Filial[] = ["Corbélia", "Cafelandia"];
 
 export interface HistoricoItem {
   id: string;
