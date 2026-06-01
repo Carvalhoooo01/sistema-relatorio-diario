@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Tecnico } from "../data/topicos";
 
-// Criamos a lista de técnicos mockados diretamente aqui com a nova tipagem
 const LISTA_TECNICOS: Tecnico[] = [
   { id: "1", nome: "Gustavo Carvalho" },
-  
 ];
 
 interface TelaLoginProps {
@@ -14,15 +12,10 @@ interface TelaLoginProps {
 export default function TelaLogin({ onLogin }: TelaLoginProps) {
   const [nomeBusca, setNomeBusca] = useState("");
 
-  // Tipando explicitamente o parâmetro 't' como Tecnico
-  const tecnicosFiltrados = LISTA_TECNICOS.filter((t: Tecnico) =>
-    t.nome.toLowerCase().includes(nomeBusca.toLowerCase())
-  );
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Procura o técnico na lista tipando o parâmetro 'n' como Tecnico
+    // Procura o técnico na lista comparando o texto digitado
     const encontrado = LISTA_TECNICOS.find(
       (n: Tecnico) => n.nome.toLowerCase() === nomeBusca.trim().toLowerCase()
     );
@@ -45,15 +38,10 @@ export default function TelaLogin({ onLogin }: TelaLoginProps) {
             placeholder="Ex: Nome Colaborador"
             value={nomeBusca}
             onChange={(e) => setNomeBusca(e.target.value)}
-            list="tecnicos-list"
+            autoComplete="off"
             style={{ width: "100%", background: "#1e1e22", border: "1px solid #38383f", borderRadius: 8, padding: "10px 12px", color: "#f0f0f0", fontSize: 14 }}
             required
           />
-          <datalist id="tecnicos-list">
-            {tecnicosFiltrados.map((t: Tecnico) => (
-              <option key={t.id} value={t.nome} />
-            ))}
-          </datalist>
         </div>
         <button type="submit" style={{ width: "100%", padding: "12px", background: "#c8f564", color: "#0f0f11", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           Entrar no Painel
