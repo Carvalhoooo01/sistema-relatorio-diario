@@ -1,29 +1,32 @@
 import { jsPDF } from "jspdf";
-import { TOPICOS, ValoresTopicos } from "../data/topicos";
+import { TOPICOS_POR_SETOR, ValoresTopicos, Setor } from "../data/topicos";
 
 export function gerarTextoWhatsApp(
   nome: string,
   filial: string,
   data: string,
   valores: ValoresTopicos,
-  obs: string
+  obs: string,
+  setor: Setor = "Suporte Técnico" // Fallback seguro caso o setor não venha informado
 ): string {
-  const total = TOPICOS.reduce((s, t) => s + valores[t], 0);
-
-  const ativos = TOPICOS.filter((t) => valores[t] > 0);
-  const inativos = TOPICOS.filter((t) => valores[t] === 0);
+  const topicosDoSetor = TOPICOS_POR_SETOR[setor] || [];
+  
+  // Tipando explicitamente o acumulador (s) e o item (t) como string
+  const total = topicosDoSetor.reduce((s: number, t: string) => s + (valores[t] || 0), 0);
+  const ativos = topicosDoSetor.filter((t: string) => (valores[t] || 0) > 0);
+  const inativos = topicosDoSetor.filter((t: string) => (valores[t] || 0) === 0);
 
   const linhasAtivos = ativos
-    .map((t) => `  ✅ ${t}: *${valores[t]}*`)
+    .map((t: string) => `  ✅ ${t}: *${valores[t]}*`)
     .join("\n");
 
   const linhasInativos = inativos
-    .map((t) => `  ▫️ ${t}: 0`)
+    .map((t: string) => `  ▫️ ${t}: 0`)
     .join("\n");
 
   const deVolta = [
     `━━━━━━━━━━━━━━━━━━━━`,
-    `📋 *RELATÓRIO DIÁRIO*`,
+    `📋 *RELATÓRIO DIÁRIO - ${setor.toUpperCase()}*`,
     `━━━━━━━━━━━━━━━━━━━━`,
     ``,
     `👤 *${nome}*`, 
@@ -62,13 +65,13 @@ export function gerarTextoWhatsApp(
   return deVolta.join("\n");
 }
 
-// NOVA FUNÇÃO: Gera um PDF limpo, elegante e sem caracteres bugados
 export function exportarPDF(
   nome: string,
   filial: string,
   data: string,
   valores: ValoresTopicos,
-  obs: string
+  obs: string,
+  setor: Setor = "Suporte Técnico"
 ) {
   try {
     const doc = new jsPDF({
@@ -77,49 +80,49 @@ export function exportarPDF(
       format: "a4"
     });
 
-    const total = TOPICOS.reduce((s, t) => s + valores[t], 0);
-    const ativos = TOPICOS.filter((t) => valores[t] > 0);
-    const inativos = TOPICOS.filter((t) => valores[t] === 0);
+    const topicosDoSetor = TOPICOS_POR_SETOR[setor] || [];
+    const total = topicosDoSetor.reduce((s: number, t: string) => s + (valores[t] || 0), 0);
+    const ativos = topicosDoSetor.filter((t: string) => (valores[t] || 0) > 0);
+    const inativos = topicosDoSetor.filter((t: string) => (valores[t] || 0) === 0);
 
-    let y = 20; // Posição vertical inicial
+    let y = 20;
 
     // 1. TÍTULO DO RELATÓRIO
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setTextColor(30, 30, 30);
-    doc.text("RELATÓRIO DIÁRIO DE ATIVIDADES", 15, y);
+    doc.text(`RELATÓRIO DIÁRIO DE ATIVIDADES`, 15, y);
     
-    // Linha decorativa abaixo do título
     y += 4;
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.5);
     doc.line(15, y, 195, y);
 
-    // 2. INFORMAÇÕES GERAIS (GABINETE)
+    // 2. INFORMAÇÕES GERAIS
     y += 12;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.text("TÉCNICO:", 15, y);
+    doc.text("COLABORADOR:", 15, y);
     doc.setFont("helvetica", "normal");
-    doc.text(nome, 40, y);
+    doc.text(nome, 50, y);
 
     y += 7;
     doc.setFont("helvetica", "bold");
-    doc.text("FILIAL:", 15, y);
+    doc.text("SETOR:", 15, y);
     doc.setFont("helvetica", "normal");
-    doc.text(filial, 40, y);
+    doc.text(setor, 50, y);
 
     y += 7;
     doc.setFont("helvetica", "bold");
-    doc.text("DATA:", 15, y);
+    doc.text("FILIAL / DATA:", 15, y);
     doc.setFont("helvetica", "normal");
-    doc.text(data, 40, y);
+    doc.text(`${filial}  -  ${data}`, 50, y);
 
     // 3. SEÇÃO: ATIVIDADES REALIZADAS
     y += 15;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.setTextColor(40, 160, 40); // Cor verde discreta para o cabeçalho de sucessos
+    doc.setTextColor(40, 160, 40);
     doc.text("ATIVIDADES REALIZADAS", 15, y);
     
     y += 3;
@@ -132,7 +135,7 @@ export function exportarPDF(
     doc.setTextColor(50, 50, 50);
 
     if (ativos.length > 0) {
-      ativos.forEach((topico) => {
+      ativos.forEach((topico: string) => {
         if (y > 270) { doc.addPage(); y = 20; }
         doc.text(`[ X ]  ${topico}:`, 18, y);
         doc.setFont("helvetica", "bold");
@@ -150,7 +153,7 @@ export function exportarPDF(
     if (y > 260) { doc.addPage(); y = 20; }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.setTextColor(100, 100, 110); // Cinza profissional
+    doc.setTextColor(100, 100, 110);
     doc.text("SEM OCORRÊNCIAS", 15, y);
     
     y += 3;
@@ -158,10 +161,10 @@ export function exportarPDF(
     
     y += 8;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10); // Fonte ligeiramente menor para economizar espaço nos zeros
+    doc.setFontSize(10);
     doc.setTextColor(120, 120, 120);
 
-    inativos.forEach((topico) => {
+    inativos.forEach((topico: string) => {
       if (y > 270) { doc.addPage(); y = 20; }
       doc.text(`[ - ]  ${topico}: 0`, 18, y);
       y += 6;
@@ -210,12 +213,11 @@ export function exportarPDF(
       });
     }
 
-    // Dispara o download com o formato limpo
     const dataArquivo = data.replace(/\//g, "-");
     doc.save(`relatorio_${dataArquivo}.pdf`);
     
   } catch (error) {
-    console.error("Erro ao gerar o PDF formatado:", error);
+    console.error("Erro ao gerar o PDF:", error);
     alert("Ocorreu um erro ao estruturar o arquivo PDF.");
   }
 }

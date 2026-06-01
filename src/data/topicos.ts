@@ -1,44 +1,59 @@
-export const TOPICOS = [
-  "Encaminhamento de OS",
-  "Relatório geral das OS antiga IXC",
-  "Cobrança aos técnicos",
-  "Ativação",
-  "Suporte grupo",
-  "Verificação de PDO",
-  "Verificação de equipamento",
-  "Verificação de checklist",
-  "Suporte atendente/setores",
-  "Viabilidades",
-  "Acompanhamento fiscalização",
-  "Verificação de rede",
-  "Abertura de OS para regularização/duplicação",
-] as const;
+export type Setor = "Suporte Técnico" | "Comercial";
+export const SETORES: Setor[] = ["Suporte Técnico", "Comercial"];
 
-export type Topico = (typeof TOPICOS)[number];
+export const TOPICOS_POR_SETOR: Record<Setor, string[]> = {
+  "Suporte Técnico": [
+    "Encaminhamento de OS",
+    "Abertura de OS para regularização/duplicação",
+    "Cobrança aos técnicos",
+    "Ativação",
+    "Suporte grupo",
+    "Relatório geral das OS antiga IXC",
+    "Suporte atendente/setores",
+    "Verificação de PDO",
+    "Verificação de equipamento",
+    "Viabilidades",
+    "Verificação checklist",
+    "Verificação fiscalização",
+    "Acompanhamento de rede"
+  ],
+  "Comercial": [
+    "Cadastro de venda",
+    "Vendas",
+    "Up / renovações realizado",
+    "Whats",
+    "Recebimentos",
+    "Atendimentos abertos",
+    "Conf. de Mvno",
+    "Mudança de endereço",
+    "Troca de titularidade em andamento",
+    "Equipamento entregue em loja"
+  ]
+};
+
+export type ValoresTopicos = Record<string, number>;
 
 export interface Tecnico {
   id: string;
   nome: string;
 }
 
-export const TECNICOS: Tecnico[] = [
-  { id: "gustavo", nome: "Gustavo Carvalho" },
-  // Adicione mais técnicos aqui futuramente
-];
+export type Filial = "Corbélia" | "Cascavel";
+export const FILIAIS: Filial[] = ["Corbélia", "Cascavel"];
 
-export const FILIAIS = ["Corbélia", "Cafelândia"] as const;
-export type Filial = (typeof FILIAIS)[number];
-
-export type ValoresTopicos = Record<Topico, number>;
-
-export const initValores = (): ValoresTopicos =>
-  Object.fromEntries(TOPICOS.map((t) => [t, 0])) as ValoresTopicos;
-
-// Adicione isso no final do arquivo src/data/topicos.ts
 export interface HistoricoItem {
-  id: string;       // Um identificador único (pode ser um timestamp)
-  data: string;     // Data do relatório
-  filial: Filial;   // Filial selecionada
-  valores: ValoresTopicos; // Quantidade de cada tópico lançado
-  obs: string;      // Observações gerais daquele dia
+  id: string;
+  data: string;
+  filial: Filial;
+  setor: Setor;
+  valores: ValoresTopicos;
+  obs: string;
+}
+
+export function initValoresDinamico(listaTopicos: string[]): ValoresTopicos {
+  const obj: ValoresTopicos = {};
+  listaTopicos.forEach((t) => {
+    obj[t] = 0;
+  });
+  return obj;
 }
