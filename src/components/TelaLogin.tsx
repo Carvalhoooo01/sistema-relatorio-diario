@@ -4,7 +4,7 @@ import { Tecnico } from "../data/topicos";
 // Criamos a lista de técnicos mockados diretamente aqui com a nova tipagem
 const LISTA_TECNICOS: Tecnico[] = [
   { id: "1", nome: "Gustavo Carvalho" },
-  { id: "2", nome: "Maria Eduarda" }
+  
 ];
 
 interface TelaLoginProps {
@@ -42,7 +42,7 @@ export default function TelaLogin({ onLogin }: TelaLoginProps) {
           <label style={{ display: "block", fontSize: 12, color: "#6b6b78", marginBottom: 8, textTransform: "uppercase" }}>Nome Completo</label>
           <input
             type="text"
-            placeholder="Ex: Gustavo Carvalho"
+            placeholder="Ex: Nome Colaborador"
             value={nomeBusca}
             onChange={(e) => setNomeBusca(e.target.value)}
             list="tecnicos-list"
