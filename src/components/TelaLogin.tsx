@@ -3,6 +3,7 @@ import { Tecnico } from "../data/topicos";
 
 const LISTA_TECNICOS: Tecnico[] = [
   { id: "1", nome: "Gustavo Carvalho" },
+  { id: "1", nome: "Maria Eduarda" },
 ];
 
 interface TelaLoginProps {
