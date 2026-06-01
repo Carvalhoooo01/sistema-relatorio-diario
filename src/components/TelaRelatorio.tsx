@@ -20,6 +20,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
   const [valores, setValores] = useState<ValoresTopicos>(initValores());
   const [obs, setObs] = useState("");
   const [tab, setTab] = useState<Tab>("form");
+  const [salvandoFeedback, setSalvandoFeedback] = useState(false);
   
   // Estados para a Caixa de Seleção Inteligente
   const [busca, setBusca] = useState("");
@@ -31,18 +32,42 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const localStorageKey = `historico_relatorios_${tecnico.id}`;
+  const rascunhoKey = `rascunho_relatorio_${tecnico.id}`;
 
-  // Carrega o histórico do localStorage ao abrir o app
+  // 1. Carrega o histórico E o rascunho salvo ao abrir o app pela primeira vez
   useEffect(() => {
     const salvo = localStorage.getItem(localStorageKey);
     if (salvo) {
+      try { setHistorico(JSON.parse(salvo)); } catch (e) { console.error(e); }
+    }
+
+    const rascunho = localStorage.getItem(rascunhoKey);
+    if (rascunho) {
       try {
-        setHistorico(JSON.parse(salvo));
+        const dados = JSON.parse(rascunho);
+        setFilial(dados.filial || FILIAIS[0]);
+        setData(dados.data || todayBR());
+        setValores(dados.valores || initValores());
+        setObs(dados.obs || "");
+        
+        // Reconstrói a lista visual de edição com base nos tópicos que possuem valor > 0
+        const ativos = TOPICOS.filter((t) => dados.valores?.[t] > 0);
+        setTopicosSelecionados(ativos);
       } catch (e) {
-        console.error("Erro ao carregar histórico", e);
+        console.error("Erro ao restaurar rascunho", e);
       }
     }
-  }, [localStorageKey]);
+  }, [localStorageKey, rascunhoKey]);
+
+  // 2. Autosave: Salva o rascunho automaticamente a cada mudança feita pelo técnico
+  useEffect(() => {
+    // Evita salvar um estado completamente vazio se o app ainda estiver inicializando
+    const totalItens = TOPICOS.reduce((s, t) => s + valores[t], 0);
+    if (totalItens > 0 || obs.trim() !== "") {
+      const dadosRascunho = { filial, data, valores, obs };
+      localStorage.setItem(rascunhoKey, JSON.stringify(dadosRascunho));
+    }
+  }, [filial, data, valores, obs, rascunhoKey]);
 
   // Fecha o dropdown se o usuário clicar fora dele
   useEffect(() => {
@@ -65,23 +90,33 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
     }
   };
 
-  // Modelo: Salva no histórico local e abre o WhatsApp Web
+  // Força o salvamento manual gerando o feedback visual na tela
+  const handleSalvarRascunho = () => {
+    const dadosRascunho = { filial, data, valores, obs };
+    localStorage.setItem(rascunhoKey, JSON.stringify(dadosRascunho));
+    
+    setSalvandoFeedback(true);
+    setTimeout(() => setSalvandoFeedback(false), 2000);
+  };
+
+  // Envia o relatório, joga no histórico definitivo e limpa o rascunho temporário
   const handleEnviarWhatsAppWeb = () => {
     const texto = gerarTextoWhatsApp(tecnico.nome, filial, data, valores, obs);
 
-    // Criar o item do histórico
     const novoItem: HistoricoItem = {
       id: Date.now().toString(),
       data,
       filial,
-      valores: { ...valores }, // Cria uma cópia limpa dos valores
+      valores: { ...valores },
       obs
     };
 
-    // Atualiza o estado e força a gravação imediata no localStorage
     const historicoAtualizado = [novoItem, ...historico.filter(h => h.id !== novoItem.id)];
     setHistorico(historicoAtualizado);
     localStorage.setItem(localStorageKey, JSON.stringify(historicoAtualizado));
+
+    // Remove o rascunho do dia já que ele virou histórico oficial enviado
+    localStorage.removeItem(rascunhoKey);
 
     const textoCodificado = encodeURIComponent(texto);
     const urlWhatsAppWeb = `https://web.whatsapp.com/send?text=${textoCodificado}`;
@@ -89,7 +124,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
     window.open(urlWhatsAppWeb, "_blank");
   };
 
-  // Reenvia dados do histórico abrindo em uma nova aba do WhatsApp Web
+  // Reenvia dados puxados diretamente do histórico
   const handleEnviarWhatsAppHistoricoWeb = (item: HistoricoItem) => {
     const texto = gerarTextoWhatsApp(tecnico.nome, item.filial, item.data, item.valores, item.obs);
     const textoCodificado = encodeURIComponent(texto);
@@ -98,7 +133,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
     window.open(urlWhatsAppWeb, "_blank");
   };
 
-  // Restaura dados antigos no formulário para ajustes
+  // Restaura dados antigos no formulário para ajustes e correções
   const restaurarRelatorio = (item: HistoricoItem) => {
     setFilial(item.filial);
     setData(item.data);
@@ -128,6 +163,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
       setObs("");
       setBusca("");
       setTopicosSelecionados([]);
+      localStorage.removeItem(rascunhoKey); // Reseta o rascunho salvo do navegador
     }
   };
 
@@ -169,7 +205,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
         }}>Sair</button>
       </div>
 
-      {/* Abas */}
+      {/* Abas de Navegação */}
       <div style={{ display: "flex", gap: 6, background: "#17171a", padding: 4, borderRadius: 10, marginBottom: 24 }}>
         <button onClick={() => setTab("form")} style={{
           flex: 1, padding: "8px 0", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 500,
@@ -191,7 +227,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
         }}>Histórico ({historico.length})</button>
       </div>
 
-      {/* Conteúdo */}
+      {/* Box de Conteúdo Principal */}
       <div style={{ background: "#17171a", border: "1px solid #2a2a30", borderRadius: 16, padding: "24px", marginBottom: 24 }}>
         {tab === "form" && (
           <div>
@@ -217,7 +253,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
 
             <hr style={{ border: "none", borderTop: "1px solid #2a2a30", margin: "0 0 20px" }} />
 
-            {/* COMBOBOX */}
+            {/* COMBOBOX SELEÇÃO */}
             <div ref={dropdownRef} style={{ marginBottom: 24, position: "relative" }}>
               <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: "#6b6b78", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
                 Selecionar Tópico de Atendimento
@@ -263,7 +299,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
               )}
             </div>
 
-            {/* Listagem de Edição Dinâmica */}
+            {/* Listagem Dinâmica de Atividades em Edição */}
             <div style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 16 }}>
               {topicosSelecionados.length > 0 && (
                 <p style={{ fontSize: 11, fontWeight: 500, color: "#6b6b78", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Tópicos em edição ({topicosSelecionados.length})</p>
@@ -284,7 +320,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
               )}
             </div>
 
-            {/* Resumo Total */}
+            {/* Resumo de Atividades Acumuladas */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, padding: "12px 14px", background: "#1e1e22", borderRadius: 8, border: "1px solid #2a2a30" }}>
               <span style={{ fontSize: 13, fontWeight: 500, color: "#6b6b78" }}>Total de Atividades Lançadas:</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 600, color: total > 0 ? "#c8f564" : "#6b6b78" }}>{total}</span>
@@ -292,7 +328,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
 
             <hr style={{ border: "none", borderTop: "1px solid #2a2a30", margin: "24px 0 20px" }} />
 
-            {/* Observações */}
+            {/* Caixa de Texto das Observações */}
             <div>
               <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: "#6b6b78", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Observações Gerais</label>
               <textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Caso queira adicionar algum detalhe sobre o dia..." style={{ width: "100%", height: 80, background: "#1e1e22", border: "1px solid #38383f", borderRadius: 8, padding: "10px 12px", color: "#f0f0f0", fontFamily: "'DM Sans', sans-serif", fontSize: 14, resize: "none" }} />
@@ -308,7 +344,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
           </div>
         )}
 
-        {/* Interface do Histórico */}
+        {/* Listagem do Histórico Gravado */}
         {tab === "history" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {historico.length > 0 ? (
@@ -322,6 +358,7 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
                         <span style={{ fontSize: 12, color: "#6b6b78", background: "#17171a", padding: "2px 8px", borderRadius: 4 }}>{item.filial}</span>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
+                        {/* Correção do nome da função de reenvio abaixo para evitar bugs de clique */}
                         <button onClick={() => handleEnviarWhatsAppHistoricoWeb(item)} style={{ background: "transparent", border: "none", color: "#c8f564", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>Reenviar 📲</button>
                         <button onClick={() => restaurarRelatorio(item)} style={{ background: "transparent", border: "none", color: "#f0f0f0", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>Editar ✏️</button>
                         <button onClick={() => deletarDoHistorico(item.id)} style={{ background: "transparent", border: "none", color: "#ef4444", fontSize: 13, cursor: "pointer", fontWeight: 500 }}>Apagar 🗑️</button>
@@ -346,12 +383,23 @@ export default function TelaRelatorio({ tecnico, onLogout }: Props) {
           </div>
         )}
 
-        {/* Botões de Ações */}
+        {/* Botões de Ação na Base do App */}
         {tab !== "history" && (
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 24 }}>
             <button onClick={handleEnviarWhatsAppWeb} style={{ padding: "9px 20px", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .2s", background: "#c8f564", color: "#0f0f11", border: "none" }}>
               📲 Enviar para o WhatsApp
             </button>
+            
+            {/* Botão de Salvar Rascunho com feedback dinâmico */}
+            <button onClick={handleSalvarRascunho} style={{ 
+              padding: "9px 20px", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, 
+              cursor: "pointer", transition: "all .15s",
+              background: salvandoFeedback ? "#22c55e" : "#1e1e22", 
+              color: "#f0f0f0", border: "1px solid #38383f"
+            }}>
+              {salvandoFeedback ? "✓ Salvo com Sucesso!" : "💾 Salvar Rascunho"}
+            </button>
+
             <button onClick={handlePDF} style={{ padding: "9px 20px", borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, cursor: "pointer", background: "#1e1e22", color: "#f0f0f0", border: "1px solid #38383f", transition: "all .15s" }}>
               📄 Baixar Relatório
             </button>
